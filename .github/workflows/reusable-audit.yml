@@ -87,9 +87,12 @@ jobs:
           WARNINGS=$(grep -c "\[WARNING\]" /tmp/audit_report.txt 2>/dev/null || echo "0")
           echo "criticals=${CRITICALS}" >> $GITHUB_OUTPUT
           echo "warnings=${WARNINGS}" >> $GITHUB_OUTPUT
+          # Expose whether optional secrets are configured (avoids secrets context in if conditions)
+          echo "slack_configured=${{ secrets.SLACK_WEBHOOK_URL != '' }}" >> $GITHUB_OUTPUT
+          echo "email_configured=${{ secrets.NOTIFICATION_EMAIL != '' && secrets.MAIL_USERNAME != '' }}" >> $GITHUB_OUTPUT
 
       - name: Notify Slack on audit failure
-        if: steps.audit.outputs.exit_code != '0' && secrets.SLACK_WEBHOOK_URL != ''
+        if: steps.audit.outputs.exit_code != '0' && steps.summary.outputs.slack_configured == 'true'
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
@@ -123,7 +126,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Send email notification on audit failure
-        if: steps.audit.outputs.exit_code != '0' && secrets.NOTIFICATION_EMAIL != '' && secrets.MAIL_USERNAME != ''
+        if: steps.audit.outputs.exit_code != '0' && steps.summary.outputs.email_configured == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
