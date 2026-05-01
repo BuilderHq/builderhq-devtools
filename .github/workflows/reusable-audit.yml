@@ -17,6 +17,18 @@ on:
       DEVTOOLS_TOKEN:
         description: "PAT with read access to builderhq-devtools repo"
         required: true
+      SLACK_WEBHOOK_URL:
+        description: "Slack incoming webhook URL for audit failure notifications (optional)"
+        required: false
+      NOTIFICATION_EMAIL:
+        description: "Email address to notify on audit failure (optional)"
+        required: false
+      MAIL_USERNAME:
+        description: "SMTP username for email notifications (optional)"
+        required: false
+      MAIL_PASSWORD:
+        description: "SMTP password for email notifications (optional)"
+        required: false
 
 jobs:
   audit:
@@ -31,7 +43,7 @@ jobs:
       - name: Checkout builderhq-devtools (audit engine)
         uses: actions/checkout@v4
         with:
-          repository: ZechariahBHQ/builderhq-devtools
+          repository: BuilderHq/builderhq-devtools
           token: ${{ secrets.DEVTOOLS_TOKEN }}
           path: .devtools
 
@@ -64,6 +76,82 @@ jobs:
           name: audit-report-${{ github.run_number }}
           path: /tmp/audit_report.txt
           retention-days: 30
+
+      # ─── Failure Notifications ────────────────────────────────────────────
+
+      - name: Extract critical issues summary
+        id: summary
+        if: steps.audit.outputs.exit_code != '0'
+        run: |
+          CRITICALS=$(grep -c "\[CRITICAL\]" /tmp/audit_report.txt 2>/dev/null || echo "0")
+          WARNINGS=$(grep -c "\[WARNING\]" /tmp/audit_report.txt 2>/dev/null || echo "0")
+          echo "criticals=${CRITICALS}" >> $GITHUB_OUTPUT
+          echo "warnings=${WARNINGS}" >> $GITHUB_OUTPUT
+
+      - name: Notify Slack on audit failure
+        if: steps.audit.outputs.exit_code != '0' && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": ":red_circle: *BuilderHQ Audit Failed* — ${{ github.repository }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": { "type": "plain_text", "text": ":red_circle: Audit Failed — Action Required" }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Repository:*\n`${{ github.repository }}`" },
+                    { "type": "mrkdwn", "text": "*Branch:*\n`${{ github.ref_name }}`" },
+                    { "type": "mrkdwn", "text": "*Triggered by:*\n`${{ github.actor }}`" },
+                    { "type": "mrkdwn", "text": "*Critical Issues:*\n`${{ steps.summary.outputs.criticals }}` found" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|`${{ github.sha }}`>\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View full audit report>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Send email notification on audit failure
+        if: steps.audit.outputs.exit_code != '0' && secrets.NOTIFICATION_EMAIL != '' && secrets.MAIL_USERNAME != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[BuilderHQ] Audit Failed — ${{ github.repository }} (${{ github.ref_name }})"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: BuilderHQ CI <noreply@builderhq.io>
+          body: |
+            The BuilderHQ audit has detected critical issues in your codebase.
+
+            Repository: ${{ github.repository }}
+            Branch:     ${{ github.ref_name }}
+            Commit:     ${{ github.sha }}
+            Triggered:  ${{ github.actor }}
+            Criticals:  ${{ steps.summary.outputs.criticals }}
+            Warnings:   ${{ steps.summary.outputs.warnings }}
+
+            View the full audit report:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Fix all [CRITICAL] issues and push again to clear this alert.
+
+            — BuilderHQ CI, powered by Builderhq.io
+
+      # ─── Final Gate ───────────────────────────────────────────────────────
 
       - name: Fail if criticals found
         if: steps.audit.outputs.exit_code != '0'
