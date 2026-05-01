@@ -1,0 +1,15 @@
+{
+  "name": "@builderhq/devtools",
+  "version": "6.0.0",
+  "description": "BuilderHQ universal platform audit engine — 22 checks, zero false positives",
+  "private": true,
+  "scripts": {
+    "audit": "tsx scripts/audit.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}

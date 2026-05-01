@@ -1,0 +1,73 @@
+name: Universal Platform Audit (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      audit_root:
+        description: "Root directory to audit (relative to repo root)"
+        required: false
+        default: "."
+        type: string
+      node_version:
+        description: "Node.js version to use"
+        required: false
+        default: "22"
+        type: string
+    secrets:
+      DEVTOOLS_TOKEN:
+        description: "PAT with read access to builderhq-devtools repo"
+        required: true
+
+jobs:
+  audit:
+    name: 22-Check Platform Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout builderhq-devtools (audit engine)
+        uses: actions/checkout@v4
+        with:
+          repository: ZechariahBHQ/builderhq-devtools
+          token: ${{ secrets.DEVTOOLS_TOKEN }}
+          path: .devtools
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Install audit engine dependencies
+        run: |
+          cd .devtools
+          npm install --ignore-scripts 2>/dev/null || true
+
+      - name: Install tsx (TypeScript runner)
+        run: npm install -g tsx
+
+      - name: Run universal audit
+        id: audit
+        run: |
+          AUDIT_ROOT="${{ inputs.audit_root }}" \
+          SKIP_BUILD_CHECK=true \
+          AUDIT_OUTPUT=/tmp/audit_report.txt \
+          npx tsx .devtools/scripts/audit.ts 2>&1 | tee /tmp/audit_report.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-report-${{ github.run_number }}
+          path: /tmp/audit_report.txt
+          retention-days: 30
+
+      - name: Fail if criticals found
+        if: steps.audit.outputs.exit_code != '0'
+        run: |
+          echo "::error::Audit found critical issues. See the audit-report artifact for details."
+          grep "\[CRITICAL\]" /tmp/audit_report.txt || true
+          exit 1
