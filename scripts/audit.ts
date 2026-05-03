@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 // ═══════════════════════════════════════════════════════════════════════════════
-//  UNIVERSAL PLATFORM AUDITOR v6.0
+//  UNIVERSAL PLATFORM AUDITOR v7.0
 //  The definitive code quality, security, and operational integrity scanner
 //  for TypeScript-based SaaS platforms.
 //
@@ -31,6 +31,15 @@ import { check16_typeSafety }      from "./audit/checks/universal/c16-type-safet
 import { check18_hiddenFeatures }  from "./audit/checks/universal/c18-hidden-features.js";
 import { check20_consoleLog }      from "./audit/checks/universal/c20-console-log.js";
 import { check22_effectCleanup }   from "./audit/checks/universal/c22-effect-cleanup.js";
+import { check26_accessibility }   from "./audit/checks/universal/c26-accessibility.js";
+import { check28_hardcodedColours } from "./audit/checks/universal/c28-hardcoded-colours.js";
+import { check29_responsiveLayout } from "./audit/checks/universal/c29-responsive-layout.js";
+import { check33_godComponents }   from "./audit/checks/universal/c33-god-components.js";
+import { check34_inlineStyles }    from "./audit/checks/universal/c34-inline-styles.js";
+import { check35_todoComments }    from "./audit/checks/universal/c35-todo-comments.js";
+import { check36_magicNumbers }    from "./audit/checks/universal/c36-magic-numbers.js";
+import { check40_keyboardNavigation } from "./audit/checks/universal/c40-keyboard-navigation.js";
+import { check41_featureFlags }    from "./audit/checks/universal/c41-feature-flags.js";
 
 // ── Adaptive checks (work on any project, adapt behavior to stack) ────────────
 import { check01_deadVariables }   from "./audit/checks/adaptive/c01-dead-variables.js";
@@ -40,6 +49,15 @@ import { check08_buildVerify }     from "./audit/checks/adaptive/c08-build-verif
 import { check11_envCoverage }     from "./audit/checks/adaptive/c11-env-coverage.js";
 import { check17_rawFetch }        from "./audit/checks/adaptive/c17-raw-fetch.js";
 import { check19_loadingStates }   from "./audit/checks/adaptive/c19-loading-states.js";
+import { check23_mutationErrorHandling } from "./audit/checks/adaptive/c23-mutation-error-handling.js";
+import { check24_emptyStateHandling }    from "./audit/checks/adaptive/c24-empty-state-handling.js";
+import { check25_submitButtonDisabled }  from "./audit/checks/adaptive/c25-submit-button-disabled.js";
+import { check27_errorBoundaries }       from "./audit/checks/adaptive/c27-error-boundaries.js";
+import { check30_userFeedback }          from "./audit/checks/adaptive/c30-user-feedback.js";
+import { check31_loadingSkeleton }       from "./audit/checks/adaptive/c31-loading-skeleton.js";
+import { check32_formValidation }        from "./audit/checks/adaptive/c32-form-validation.js";
+import { check38_envBypass }             from "./audit/checks/adaptive/c38-env-bypass.js";
+import { check39_optimisticUpdates }     from "./audit/checks/adaptive/c39-optimistic-updates.js";
 
 // ── Stack-specific checks (only run when the relevant stack is detected) ──────
 import { check02_schemaMismatches }    from "./audit/checks/stack-specific/c02-schema-mismatches.js";
@@ -50,10 +68,11 @@ import { check12_authGuards }          from "./audit/checks/stack-specific/c12-a
 import { check13_unboundedInputs }     from "./audit/checks/stack-specific/c13-unbounded-inputs.js";
 import { check15_orphanedMigrations }  from "./audit/checks/stack-specific/c15-orphaned-migrations.js";
 import { check21_unprotectedRoutes }   from "./audit/checks/stack-specific/c21-unprotected-routes.js";
+import { check37_missingZodInput }      from "./audit/checks/stack-specific/c37-missing-zod-input.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const VERSION = "6.0.0";
+const VERSION = "7.0.0";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -215,7 +234,7 @@ async function main() {
 
   printDetectedConfig(config);
   console.log(`  Stack detected: ${describeStack(config)}`);
-  console.log(`  Running 22 checks...\n`);
+  console.log(`  Running 41 checks...\n`);
 
   clearIssues();
   const results: CheckResult[] = [];
@@ -249,6 +268,29 @@ async function main() {
     () => check13_unboundedInputs(config),
     () => check15_orphanedMigrations(config),
     () => check21_unprotectedRoutes(config),
+    () => check37_missingZodInput(config),
+    // UX & Workflow checks (Tier 1 — Adaptive)
+    () => check23_mutationErrorHandling(config),
+    () => check24_emptyStateHandling(config),
+    () => check25_submitButtonDisabled(config),
+    () => check27_errorBoundaries(config),
+    () => check30_userFeedback(config),
+    () => check31_loadingSkeleton(config),
+    () => check32_formValidation(config),
+    () => check38_envBypass(config),
+    () => check39_optimisticUpdates(config),
+    // UX & Workflow checks (Tier 1 — Universal)
+    () => check26_accessibility(config),
+    () => check28_hardcodedColours(config),
+    () => check29_responsiveLayout(config),
+    // Code Quality checks (Tier 2)
+    () => check33_godComponents(config),
+    () => check34_inlineStyles(config),
+    () => check35_todoComments(config),
+    () => check36_magicNumbers(config),
+    // Keyboard & Feature Flag checks
+    () => check40_keyboardNavigation(config),
+    () => check41_featureFlags(config),
   ];
 
   for (const checkFn of checks) {
