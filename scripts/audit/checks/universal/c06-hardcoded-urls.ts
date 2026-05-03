@@ -48,6 +48,10 @@ export function check06_hardcodedUrls(config: AuditConfig): CheckResult {
         if (line.startsWith("//") || line.startsWith("*") || line.startsWith("/*")) continue;
         // Skip if it's in a string that looks like documentation/example
         if (line.includes("example") || line.includes("// ")) continue;
+        // Skip if it's a fallback default in optionalEnv / env helper calls (template pattern)
+        if (/optionalEnv\s*\(/.test(line) || /process\.env\[/.test(line)) continue;
+        // Skip if it's a default value assignment in an env config object
+        if (/:\s*optionalEnv|=\s*process\.env/.test(line)) continue;
 
         addIssue("CRITICAL", 6, rel, lineNum,
           `Hardcoded ${urlLabel} found — will break in production: ${m[0].slice(1, 40)}`,
