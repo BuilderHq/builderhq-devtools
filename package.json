@@ -1,7 +1,7 @@
 {
   "name": "@builderhq/devtools",
-  "version": "6.0.0",
-  "description": "BuilderHQ universal platform audit engine — 22 checks, zero false positives",
+  "version": "7.0.0",
+  "description": "BuilderHQ universal QC system — 41 checks, bhq:ready pre-demo tool, feature flag enforcement",
   "private": true,
   "scripts": {
     "audit": "tsx scripts/audit.ts",
