@@ -1,7 +1,7 @@
 // ─── CHECK 04 — Broken Import Paths ──────────────────────────────────────────
 import * as fs from "fs";
 import * as path from "path";
-import { getAllFiles, readFile, relPath, addIssue, fileExists, isInsideBlockComment, isInsideTemplateLiteral } from "../../utils.js";
+import { getAllFiles, readFile, relPath, addIssue, fileExists, isInsideBlockComment, isInsideTemplateLiteral, isInsideLineComment } from "../../utils.js";
 import type { AuditConfig, CheckResult } from "../../types.js";
 
 export function check04_brokenImports(config: AuditConfig): CheckResult {
@@ -70,6 +70,7 @@ export function check04_brokenImports(config: AuditConfig): CheckResult {
 
       // Skip imports inside block comments or JSDoc code blocks
       if (isInsideBlockComment(src, m.index)) continue;
+      if (isInsideLineComment(src, m.index)) continue;
       if (isInsideTemplateLiteral(src, m.index)) continue;
 
       // Skip: node builtins, URLs, data URIs, virtual modules

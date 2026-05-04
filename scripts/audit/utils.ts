@@ -375,3 +375,26 @@ export function hasIntentionalComment(lines: string[], lineNum: number, lookback
   const context = lines.slice(start, end).join(" ");
   return INTENTIONAL_PATTERNS.some(re => re.test(context));
 }
+
+// ─── LINE COMMENT DETECTOR ───────────────────────────────────────────────────
+// Returns true if the given position is inside a single-line // comment.
+export function isInsideLineComment(src: string, pos: number): boolean {
+  // Find the start of the line
+  const lineStart = src.lastIndexOf("\n", pos - 1) + 1;
+  const lineUpToPos = src.slice(lineStart, pos);
+  // Check if there's a // before pos on the same line (not inside a string)
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < lineUpToPos.length - 1; i++) {
+    const ch = lineUpToPos[i];
+    const next = lineUpToPos[i + 1];
+    if (ch === "\\" && (inSingle || inDouble)) { i++; continue; }
+    if (!inSingle && !inDouble) {
+      if (ch === "/" && next === "/") return true;
+      if (ch === "'") { inSingle = true; continue; }
+      if (ch === '"') { inDouble = true; continue; }
+    } else if (inSingle && ch === "'") { inSingle = false; }
+    else if (inDouble && ch === '"') { inDouble = false; }
+  }
+  return false;
+}
