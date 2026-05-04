@@ -29,7 +29,7 @@ export function check37_missingZodInput(config: AuditConfig): CheckResult {
       if (line.startsWith("//") || line.startsWith("*")) continue;
 
       // Look backwards for .input( chained before this .mutation/.query
-      const preceding = src.slice(Math.max(0, m.index - 800), m.index);
+      const preceding = src.slice(Math.max(0, m.index - 1200), m.index);
       const hasInput = /\.input\s*\(/.test(preceding);
 
       // For mutations specifically, input validation is critical
